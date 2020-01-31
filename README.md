@@ -19,8 +19,8 @@
 A base project for the STM32F103C8T6 aka [blue pill
 board](http://reblag.dk/stm32/).
 
-This template is running FreeRTOS 10.2.1.  Preconfigured peripherals:
-I²C, SPI, ADC and CRC.
+This project runs FreeRTOS 10.2.1 and has several common system
+peripherals preconfigured.  Namely: I²C, SPI, ADC and CRC.
 
 ## Installation
 
