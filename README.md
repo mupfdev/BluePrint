@@ -22,6 +22,8 @@ board](http://reblag.dk/stm32/).
 This project runs FreeRTOS 10.2.1 and has several common system
 peripherals preconfigured.  Namely: I²C, SPI, ADC and CRC.
 
+So everything you need for most projects.
+
 ## Installation
 
 1. Install [PlatformIO Core](http://docs.platformio.org/page/core.html)
