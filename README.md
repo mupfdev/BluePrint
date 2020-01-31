@@ -19,9 +19,8 @@
 A base project for the STM32F103C8T6 aka [blue pill
 board](http://reblag.dk/stm32/).
 
-## Bootloader
-
-[STM32duino-bootloader](https://github.com/rogerclarkmelbourne/STM32duino-bootloader)
+This template is running FreeRTOS 10.2.1.  Preconfigured peripherals:
+I²C, SPI, ADC and CRC.
 
 ## Installation
 
