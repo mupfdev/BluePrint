@@ -41,8 +41,7 @@ int main(void)
 
 /**
  * @brief Main thread handler
- * @param pArg
- *        Unused
+ * @param pArg: Unused
  */
 static void MainThread(void const* pArg)
 {
