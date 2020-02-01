@@ -17,7 +17,7 @@
 osThreadId hMainThread;
 
 static void    MainThread(void const* pArg);
-static uint8_t u8BlinkDelay = 0;
+static uint8_t u8BlinkDelay = 250;
 
 /**
   * @brief  The application entry point.
@@ -25,7 +25,7 @@ static uint8_t u8BlinkDelay = 0;
   */
 int main(void)
 {
-    if (SYSTEM_OK == System_Init())
+    if (SYSTEM_OK != System_Init())
     {
         u8BlinkDelay = 100;
     }
