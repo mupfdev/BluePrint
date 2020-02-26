@@ -12,7 +12,7 @@
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx_hal_tim.h"
 
-TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim4; ///< Timer 4 handle
 
 /**
  * @brief  This function configures the TIM4 as a time base source.
