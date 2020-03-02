@@ -27,8 +27,10 @@ typedef enum
     SYSTEM_ADC_ERROR,     ///< ADC error
     SYSTEM_CRC_ERROR,     ///< CRC error
     SYSTEM_I2C_ERROR,     ///< I²C error
-    SYSTEM_SPI_ERROR      ///< SPI error
+    SYSTEM_SPI_ERROR,     ///< SPI error
+    SYSTEM_TIM1_ERROR     ///< Timer 1 error
 
 } SystemStatus;
 
 SystemStatus System_Init(void);
+void         System_DelayUS(uint16_t u16Delay);

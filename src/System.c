@@ -16,8 +16,10 @@ ADC_HandleTypeDef hadc1; ///< ADC handle
 CRC_HandleTypeDef hcrc;  ///< CRC handle
 I2C_HandleTypeDef hi2c1; ///< I²C handle
 SPI_HandleTypeDef hspi1; ///< SPI handle
+TIM_HandleTypeDef htim1; ///< Timer 1 handle
 
 static void         System_GPIO_Init(void);
+static SystemStatus System_TIM1_Init(void);
 static SystemStatus System_ADC_Init(void);
 static SystemStatus System_CRC_Init(void);
 static SystemStatus System_I2C_Init(void);
@@ -98,6 +100,12 @@ SystemStatus System_Init(void)
     // Initialise peripherals
     System_GPIO_Init();
 
+    eStatus = System_TIM1_Init();
+    if (SYSTEM_OK != eStatus)
+    {
+        return eStatus;
+    }
+
     eStatus = System_ADC_Init();
     if (SYSTEM_OK != eStatus)
     {
@@ -116,8 +124,124 @@ SystemStatus System_Init(void)
         return eStatus;
     }
 
+    if (HAL_OK != HAL_TIM_Base_Start(&htim1))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
     eStatus = System_SPI_Init();
     return eStatus;
+}
+
+/**
+ * @brief Delay program (blocking)
+ * @param u16Delay
+ *        Delay in microseconds
+ */
+void System_DelayUS(uint16_t u16Delay)
+{
+    __HAL_TIM_SET_COUNTER(&htim1, 0);
+    while (u16Delay > __HAL_TIM_GET_COUNTER(&htim1));
+}
+
+/**
+ * @brief  GPIO Initialisation Function
+ */
+static void System_GPIO_Init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
+    // GPIO Ports Clock Enable
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+    GPIO_InitStruct.Pin   = LED_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
+    HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+}
+
+/**
+ * @brief  Timer 1 Initialisation Function
+ * @return System status code
+ */
+static SystemStatus System_TIM1_Init(void)
+{
+    TIM_ClockConfigTypeDef         sClockSourceConfig   = { 0 };
+    TIM_MasterConfigTypeDef        sMasterConfig        = { 0 };
+    TIM_OC_InitTypeDef             sConfigOC            = { 0 };
+    TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = { 0 };
+
+    extern void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
+
+    htim1.Instance               = TIM1;
+    htim1.Init.Prescaler         = 72-1;
+    htim1.Init.CounterMode       = TIM_COUNTERMODE_UP;
+    htim1.Init.Period            = 0xFFFF-1;
+    htim1.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
+    htim1.Init.RepetitionCounter = 0;
+    htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+
+    if (HAL_OK != HAL_TIM_Base_Init(&htim1))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+
+    if (HAL_OK != HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    if (HAL_OK != HAL_TIM_OC_Init(&htim1))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode     = TIM_MASTERSLAVEMODE_DISABLE;
+
+    if (HAL_OK != HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    sConfigOC.OCMode       = TIM_OCMODE_FORCED_ACTIVE;
+    sConfigOC.Pulse        = 0;
+    sConfigOC.OCPolarity   = TIM_OCPOLARITY_HIGH;
+    sConfigOC.OCNPolarity  = TIM_OCNPOLARITY_HIGH;
+    sConfigOC.OCFastMode   = TIM_OCFAST_DISABLE;
+    sConfigOC.OCIdleState  = TIM_OCIDLESTATE_RESET;
+    sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+    if (HAL_OK != HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    sBreakDeadTimeConfig.OffStateRunMode  = TIM_OSSR_DISABLE;
+    sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+    sBreakDeadTimeConfig.LockLevel        = TIM_LOCKLEVEL_OFF;
+    sBreakDeadTimeConfig.DeadTime         = 0;
+    sBreakDeadTimeConfig.BreakState       = TIM_BREAK_DISABLE;
+    sBreakDeadTimeConfig.BreakPolarity    = TIM_BREAKPOLARITY_HIGH;
+    sBreakDeadTimeConfig.AutomaticOutput  = TIM_AUTOMATICOUTPUT_DISABLE;
+
+    if (HAL_OK != HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig))
+    {
+        return SYSTEM_TIM1_ERROR;
+    }
+
+    HAL_TIM_MspPostInit(&htim1);
+
+    return SYSTEM_OK;
 }
 
 /**
@@ -220,27 +344,4 @@ static SystemStatus System_SPI_Init(void)
     }
 
     return SYSTEM_OK;
-}
-
-/**
- * @brief  GPIO Initialisation Function
- */
-static void System_GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
-
-    // GPIO Ports Clock Enable
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-
-    GPIO_InitStruct.Pin   = LED_Pin;
-    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull  = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
-    HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 }
