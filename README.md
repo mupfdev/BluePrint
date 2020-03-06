@@ -20,7 +20,7 @@ A base project for the STM32F103C8T6 aka [blue pill
 board](http://reblag.dk/stm32/).
 
 This project runs FreeRTOS 10.2.1 and has several common system
-peripherals preconfigured.  Namely: I²C, SPI, ADC and CRC.
+peripherals preconfigured.  Namely: I²C2, SPI1, ADC1, TIM1.
 
 So everything you need for most projects.
 

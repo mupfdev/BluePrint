@@ -1,29 +1,54 @@
 /**
- * @file      System.c
- * @brief     STM32F103C8T6 system initialisation
- * @copyright Copyright (c) 2020 STMicroelectronics.
- *            All rights reserved.
- *            This software component is licensed by ST under Ultimate
- *            Liberty license SLA0044, the "License"; You may not use
- *            this file except in compliance with the License.  You may
- *            obtain a copy of the License at:  www.st.com/SLA0044
+ * @file       System.c
+ * @brief      STM32F103C8T6 system initialisation
+ * @copyright  Copyright (c) 2020 STMicroelectronics.
+ *             All rights reserved.
+ *             This software component is licensed by ST under Ultimate
+ *             Liberty license SLA0044, the "License"; You may not use
+ *             this file except in compliance with the License.  You may
+ *             obtain a copy of the License at:  www.st.com/SLA0044
+ * @page       SysOverview System overview
+ * @section    GPIOConfig GPIO configuration
+ * @subsection GPIO_ADC1 ADC 1
+ *
+ * @li PB0 ---> ADC1_IN8
+ * @li PB1 ---> ADC1_IN9
+ *
+ * @subsection GPIO_I2C2 I²C 2
+ *
+ * @li PB10 ---> I2C2_SCL
+ * @li PB11 ---> I2C2_SDA
+ *
+ * @subsection GPIO_SPI1 SPI 1
+ *
+ * @li PA5 ---> SPI1_SCK
+ * @li PA6 ---> SPI1_MISO
+ * @li PA7 ---> SPI1_MOSI
+ *
+ * @subsection GPIO_TIM1 TIM 1
+ *
+ * @li PA8 ---> TIM1_CH1
+ *
+ * @subsection GPIO_GENERIC Generic
+ *
+ * @li PC13 ---> LED
+ *
  */
 
 #include "stm32f1xx_hal.h"
 #include "System.h"
 
-ADC_HandleTypeDef hadc1; ///< ADC handle
-CRC_HandleTypeDef hcrc;  ///< CRC handle
-I2C_HandleTypeDef hi2c1; ///< I²C handle
-SPI_HandleTypeDef hspi1; ///< SPI handle
+ADC_HandleTypeDef hadc1; ///< ADC 1 handle
+I2C_HandleTypeDef hi2c2; ///< I²C 2 handle
+SPI_HandleTypeDef hspi1; ///< SPI 1 handle
 TIM_HandleTypeDef htim1; ///< Timer 1 handle
+TIM_HandleTypeDef htim4; ///< Timer 4 handle (Sys-Tick)
 
 static void         System_GPIO_Init(void);
 static SystemStatus System_TIM1_Init(void);
-static SystemStatus System_ADC_Init(void);
-static SystemStatus System_CRC_Init(void);
-static SystemStatus System_I2C_Init(void);
-static SystemStatus System_SPI_Init(void);
+static SystemStatus System_ADC1_Init(void);
+static SystemStatus System_I2C2_Init(void);
+static SystemStatus System_SPI1_Init(void);
 
 /**
  * @brief  Period elapsed callback in non blocking mode
@@ -106,30 +131,24 @@ SystemStatus System_Init(void)
         return eStatus;
     }
 
-    eStatus = System_ADC_Init();
-    if (SYSTEM_OK != eStatus)
-    {
-        return eStatus;
-    }
-
-    eStatus = System_CRC_Init();
-    if (SYSTEM_OK != eStatus)
-    {
-        return eStatus;
-    }
-
-    eStatus = System_I2C_Init();
-    if (SYSTEM_OK != eStatus)
-    {
-        return eStatus;
-    }
-
     if (HAL_OK != HAL_TIM_Base_Start(&htim1))
     {
         return SYSTEM_TIM1_ERROR;
     }
 
-    eStatus = System_SPI_Init();
+    eStatus = System_ADC1_Init();
+    if (SYSTEM_OK != eStatus)
+    {
+        return eStatus;
+    }
+
+    eStatus = System_I2C2_Init();
+    if (SYSTEM_OK != eStatus)
+    {
+        return eStatus;
+    }
+
+    eStatus = System_SPI1_Init();
     return eStatus;
 }
 
@@ -234,21 +253,21 @@ static SystemStatus System_TIM1_Init(void)
 }
 
 /**
- * @brief  ADC Initialisation Function
+ * @brief  ADC 1 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_ADC_Init(void)
+static SystemStatus System_ADC1_Init(void)
 {
     ADC_ChannelConfTypeDef sConfig = { 0 };
 
     // Common config
     hadc1.Instance                   = ADC1;
-    hadc1.Init.ScanConvMode          = ADC_SCAN_DISABLE;
+    hadc1.Init.ScanConvMode          = ADC_SCAN_ENABLE;
     hadc1.Init.ContinuousConvMode    = DISABLE;
     hadc1.Init.DiscontinuousConvMode = DISABLE;
     hadc1.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     hadc1.Init.DataAlign             = ADC_DATAALIGN_RIGHT;
-    hadc1.Init.NbrOfConversion       = 1;
+    hadc1.Init.NbrOfConversion       = 4;
 
     if (HAL_OK != HAL_ADC_Init(&hadc1))
     {
@@ -256,9 +275,35 @@ static SystemStatus System_ADC_Init(void)
     }
 
     // Configure Regular Channel
-    sConfig.Channel      = ADC_CHANNEL_TEMPSENSOR;
+    sConfig.Channel      = ADC_CHANNEL_8;
     sConfig.Rank         = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+    sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
+
+    if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
+    {
+        return SYSTEM_ADC_ERROR;
+    }
+
+    // Configure Regular Channel
+    sConfig.Channel = ADC_CHANNEL_9;
+    sConfig.Rank    = ADC_REGULAR_RANK_2;
+
+    if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
+    {
+        return SYSTEM_ADC_ERROR;
+    }
+
+    // Configure Regular Channel
+    sConfig.Channel = ADC_CHANNEL_8;
+    sConfig.Rank    = ADC_REGULAR_RANK_3;
+
+    if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
+    {
+        return SYSTEM_ADC_ERROR;
+    }
+
+    // Configure Regular Channel
+    sConfig.Rank = ADC_REGULAR_RANK_4;
 
     if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
     {
@@ -269,37 +314,22 @@ static SystemStatus System_ADC_Init(void)
 }
 
 /**
- * @brief  CRC Initialisation Function
+ * @brief  I²C 2 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_CRC_Init(void)
+static SystemStatus System_I2C2_Init(void)
 {
-    hcrc.Instance = CRC;
-    if (HAL_OK != HAL_CRC_Init(&hcrc))
-    {
-        return SYSTEM_CRC_ERROR;
-    }
+    hi2c2.Instance             = I2C2;
+    hi2c2.Init.ClockSpeed      = 100000;
+    hi2c2.Init.DutyCycle       = I2C_DUTYCYCLE_2;
+    hi2c2.Init.OwnAddress1     = 0;
+    hi2c2.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
+    hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    hi2c2.Init.OwnAddress2     = 0;
+    hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    hi2c2.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
 
-    return SYSTEM_OK;
-}
-
-/**
- * @brief  I²C Initialisation Function
- * @return System status code
- */
-static SystemStatus System_I2C_Init(void)
-{
-    hi2c1.Instance             = I2C1;
-    hi2c1.Init.ClockSpeed      = 100000;
-    hi2c1.Init.DutyCycle       = I2C_DUTYCYCLE_2;
-    hi2c1.Init.OwnAddress1     = 0;
-    hi2c1.Init.AddressingMode  = I2C_ADDRESSINGMODE_7BIT;
-    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    hi2c1.Init.OwnAddress2     = 0;
-    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    hi2c1.Init.NoStretchMode   = I2C_NOSTRETCH_DISABLE;
-
-    if (HAL_OK != HAL_I2C_Init(&hi2c1))
+    if (HAL_OK != HAL_I2C_Init(&hi2c2))
     {
         return SYSTEM_I2C_ERROR;
     }
@@ -308,10 +338,10 @@ static SystemStatus System_I2C_Init(void)
 }
 
 /**
- * @brief  SPI Initialisation Function
+ * @brief  SPI 1 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_SPI_Init(void)
+static SystemStatus System_SPI1_Init(void)
 {
     // SPI1 parameter configuration
     hspi1.Instance               = SPI1;
@@ -321,7 +351,7 @@ static SystemStatus System_SPI_Init(void)
     hspi1.Init.CLKPolarity       = SPI_POLARITY_LOW;
     hspi1.Init.CLKPhase          = SPI_PHASE_1EDGE;
     hspi1.Init.NSS               = SPI_NSS_SOFT;
-    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
     hspi1.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     hspi1.Init.TIMode            = SPI_TIMODE_DISABLE;
     hspi1.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
@@ -333,4 +363,416 @@ static SystemStatus System_SPI_Init(void)
     }
 
     return SYSTEM_OK;
+}
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
+
+/**
+ * @brief Initialis the Global MSP.
+ */
+void HAL_MspInit(void)
+{
+    __HAL_RCC_AFIO_CLK_ENABLE();
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+    /* System interrupt init
+     * PendSV_IRQn interrupt configuration
+     */
+    HAL_NVIC_SetPriority(PendSV_IRQn, 15, 0);
+
+    // NOJTAG: JTAG-DP Disabled and SW-DP Enabled
+    __HAL_AFIO_REMAP_SWJ_NOJTAG();
+}
+
+/**
+ * @brief ADC MSP Initialisation
+ * @param hadc: ADC handle pointer
+ */
+void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
+    if(ADC1 == hadc->Instance)
+    {
+        // Peripheral clock enable
+        __HAL_RCC_ADC1_CLK_ENABLE();
+
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+
+        /* ADC1 GPIO Configuration
+         *
+         *   PB0 ---> ADC1_IN8
+         *   PB1 ---> ADC1_IN9
+         */
+        GPIO_InitStruct.Pin  = GPIO_PIN_0 | GPIO_PIN_1;
+        GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        // ADC1 interrupt Init
+        HAL_NVIC_SetPriority(ADC1_2_IRQn, 5, 0);
+        HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+    }
+}
+
+/**
+ * @brief ADC MSP De-Initialisation
+ * @param hadc: ADC handle pointer
+ */
+void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
+{
+    if (ADC1 == hadc->Instance)
+    {
+        // Peripheral clock disable
+        __HAL_RCC_ADC1_CLK_DISABLE();
+
+        /* ADC1 GPIO Configuration
+         *
+         *   PB0 ---> ADC1_IN8
+         *   PB1 ---> ADC1_IN9
+         */
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_0 | GPIO_PIN_1);
+
+        // ADC1 interrupt DeInit
+        HAL_NVIC_DisableIRQ(ADC1_2_IRQn);
+    }
+}
+
+/**
+ * @brief I2C MSP Initialisation
+ * @param hi2c: I2C handle pointer
+ */
+void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+    if(I2C2 == hi2c->Instance)
+    {
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+
+        /* I2C2 GPIO Configuration
+         *
+         *   PB10 ---> I2C2_SCL
+         *   PB11 ---> I2C2_SDA
+         */
+        GPIO_InitStruct.Pin   = GPIO_PIN_10 | GPIO_PIN_11;
+        GPIO_InitStruct.Mode  = GPIO_MODE_AF_OD;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        // Peripheral clock enable
+        __HAL_RCC_I2C2_CLK_ENABLE();
+
+        // I2C2 interrupt Init
+        HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
+        HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+        HAL_NVIC_SetPriority(I2C2_ER_IRQn, 5, 0);
+        HAL_NVIC_EnableIRQ(I2C2_ER_IRQn);
+    }
+}
+
+/**
+ * @brief I2C MSP De-Initialisation
+ * @param hi2c: I2C handle pointer
+ */
+void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
+{
+    if(I2C2 == hi2c->Instance)
+    {
+        // Peripheral clock disable
+        __HAL_RCC_I2C2_CLK_DISABLE();
+
+        /* I2C2 GPIO Configuration
+         *
+         *   PB10 ---> I2C2_SCL
+         *   PB11 ---> I2C2_SDA
+         */
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10 | GPIO_PIN_11);
+
+        // I2C2 interrupt DeInit
+        HAL_NVIC_DisableIRQ(I2C2_EV_IRQn);
+        HAL_NVIC_DisableIRQ(I2C2_ER_IRQn);
+    }
+}
+
+/**
+ * @brief SPI MSP Initialisation
+ * @param hspi: SPI handle pointer
+ */
+void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    if(SPI1 == hspi->Instance)
+    {
+        // Peripheral clock enable
+        __HAL_RCC_SPI1_CLK_ENABLE();
+
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+
+        /* SPI1 GPIO Configuration
+         *
+         *   PA5 ---> SPI1_SCK
+         *   PA6 ---> SPI1_MISO
+         *   PA7 ---> SPI1_MOSI
+         */
+        GPIO_InitStruct.Pin   = GPIO_PIN_5 | GPIO_PIN_7;
+        GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin  = GPIO_PIN_6;
+        GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        // SPI1 interrupt Init
+        HAL_NVIC_SetPriority(SPI1_IRQn, 5, 0);
+        HAL_NVIC_EnableIRQ(SPI1_IRQn);
+    }
+}
+
+/**
+ * @brief SPI MSP De-Initialisation
+ * @param hspi: SPI handle pointer
+ */
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
+{
+    if(SPI1 == hspi->Instance)
+    {
+        // Peripheral clock disable
+        __HAL_RCC_SPI1_CLK_DISABLE();
+
+        /* SPI1 GPIO Configuration
+         *
+         *   PA5 ---> SPI1_SCK
+         *   PA6 ---> SPI1_MISO
+         *   PA7 ---> SPI1_MOSI
+         */
+        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7);
+
+        // SPI1 interrupt DeInit
+        HAL_NVIC_DisableIRQ(SPI1_IRQn);
+    }
+}
+
+/**
+ * @brief TIM_Base MSP Initialisation
+ * @param htim_base: TIM_Base handle pointer
+ */
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
+{
+    if(TIM1 == htim_base->Instance)
+    {
+        // Peripheral clock enable
+        __HAL_RCC_TIM1_CLK_ENABLE();
+    }
+}
+
+/**
+ * @brief TIM MSP Post-Initialisation
+ * @param htim: TIM handle pointer
+ */
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
+    if(TIM1 == htim->Instance)
+    {
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        /* TIM1 GPIO Configuration
+         *
+         *   PA8 ---> TIM1_CH1
+         */
+        GPIO_InitStruct.Pin   = GPIO_PIN_8;
+        GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    }
+}
+
+/**
+ * @brief TIM_Base MSP De-Initialisation
+ * @param htim_base: TIM_Base handle pointer
+ */
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
+{
+    if(TIM1 == htim_base->Instance)
+    {
+        // Peripheral clock disable
+        __HAL_RCC_TIM1_CLK_DISABLE();
+    }
+}
+
+/**
+ * @brief  This function configures the TIM4 as a time base source.
+ *         The time source is configured to have 1ms time base with a
+ *         dedicated Tick interrupt priority.
+ * @note   This function is called automatically at the beginning of
+ *         program after reset by HAL_Init() or at any time when clock
+ *         is configured, by HAL_RCC_ClockConfig().
+ * @param  TickPriority: Tick interrupt priority.
+ * @retval HAL status
+ */
+HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+{
+    RCC_ClkInitTypeDef clkconfig;
+    uint32_t           uwTimclock       = 0;
+    uint32_t           uwPrescalerValue = 0;
+    uint32_t           pFLatency;
+
+    // Configure the TIM4 IRQ priority
+    HAL_NVIC_SetPriority(TIM4_IRQn, TickPriority, 0);
+
+    // Enable the TIM4 global Interrupt
+    HAL_NVIC_EnableIRQ(TIM4_IRQn);
+
+    // Enable TIM4 clock
+    __HAL_RCC_TIM4_CLK_ENABLE();
+
+    // Get clock configuration
+    HAL_RCC_GetClockConfig(&clkconfig, &pFLatency);
+
+    // Compute TIM4 clock
+    uwTimclock = 2*HAL_RCC_GetPCLK1Freq();
+
+    /* Compute the prescaler value to have TIM4 counter clock equal to
+     * 1MHz
+     */
+    uwPrescalerValue = (uint32_t) ((uwTimclock / 1000000) - 1);
+
+    // Initialise TIM4
+    htim4.Instance = TIM4;
+
+    /* Initialise TIMx peripheral as follow:
+     *   + Period = [(TIM4CLK/1000) - 1]. to have a (1/1000) s time base.
+     *   + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
+     *   + ClockDivision = 0
+     *   + Counter direction = Up
+     */
+    htim4.Init.Period        = (1000000 / 1000) - 1;
+    htim4.Init.Prescaler     = uwPrescalerValue;
+    htim4.Init.ClockDivision = 0;
+    htim4.Init.CounterMode   = TIM_COUNTERMODE_UP;
+
+    if(HAL_OK == HAL_TIM_Base_Init(&htim4))
+    {
+        // Start the TIM time Base generation in interrupt mode
+        return HAL_TIM_Base_Start_IT(&htim4);
+    }
+
+    // Return function status
+    return HAL_ERROR;
+}
+
+/**
+ * @brief  Suspend Tick increment.
+ * @note   Disable the tick increment by disabling TIM4 update
+ *         interrupt.
+ */
+void HAL_SuspendTick(void)
+{
+    // Disable TIM4 update Interrupt
+    __HAL_TIM_DISABLE_IT(&htim4, TIM_IT_UPDATE);
+}
+
+/**
+ * @brief Resume Tick increment.
+ * @note  Enable the tick increment by Enabling TIM4 update interrupt.
+ */
+void HAL_ResumeTick(void)
+{
+    // Enable TIM4 Update interrupt
+    __HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
+}
+
+/**
+ * @brief Non-maskable interrupt handler
+ */
+void NMI_Handler(void)
+{
+}
+
+/**
+ * @brief Hard fault handler
+ */
+void HardFault_Handler(void)
+{
+    while (1) {}
+}
+
+/**
+ * @brief Memory management fault handler
+ */
+void MemManage_Handler(void)
+{
+    while (1) {}
+}
+
+/**
+ * @brief Prefetch fault, memory access fault handler
+ */
+void BusFault_Handler(void)
+{
+    while (1) {}
+}
+
+/**
+ * @brief Undefined instruction or illegal state handler
+ */
+void UsageFault_Handler(void)
+{
+    while (1) {}
+}
+
+/**
+ * @brief Debug monitor handler
+ */
+void DebugMon_Handler(void)
+{
+}
+
+/*
+ * STM32F1xx Peripheral Interrupt Handlers
+ * Add here the Interrupt Handlers for the used peripherals.
+ * For the available peripheral interrupt handler names, please refer to
+ * the startup file (startup_stm32f1xx.s).
+ */
+
+/**
+ * @brief ADC1 and ADC2 global interrupt handler
+ */
+void ADC1_2_IRQHandler(void)
+{
+    HAL_ADC_IRQHandler(&hadc1);
+}
+
+/**
+ * @brief TIM4 global interrupt handler
+ */
+void TIM4_IRQHandler(void)
+{
+    HAL_TIM_IRQHandler(&htim4);
+}
+
+/**
+ * @brief I2C2 event interrupt handler
+ */
+void I2C2_EV_IRQHandler(void)
+{
+    HAL_I2C_EV_IRQHandler(&hi2c2);
+}
+
+/**
+ * @brief I2C2 error interrupt handler.
+ */
+void I2C2_ER_IRQHandler(void)
+{
+    HAL_I2C_ER_IRQHandler(&hi2c2);
+}
+
+/**
+ * @brief SPI1 global interrupt handler
+ */
+void SPI1_IRQHandler(void)
+{
+    HAL_SPI_IRQHandler(&hspi1);
 }
