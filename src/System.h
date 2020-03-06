@@ -33,4 +33,3 @@ typedef enum
 } SystemStatus;
 
 SystemStatus System_Init(void);
-void         System_DelayUS(uint16_t u16Delay);

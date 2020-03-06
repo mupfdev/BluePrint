@@ -134,17 +134,6 @@ SystemStatus System_Init(void)
 }
 
 /**
- * @brief Delay program (blocking)
- * @param u16Delay
- *        Delay in microseconds
- */
-void System_DelayUS(uint16_t u16Delay)
-{
-    __HAL_TIM_SET_COUNTER(&htim1, 0);
-    while (u16Delay > __HAL_TIM_GET_COUNTER(&htim1));
-}
-
-/**
  * @brief  GPIO Initialisation Function
  */
 static void System_GPIO_Init(void)
