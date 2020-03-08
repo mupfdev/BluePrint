@@ -44,11 +44,11 @@ SPI_HandleTypeDef hspi1; ///< SPI 1 handle
 TIM_HandleTypeDef htim1; ///< Timer 1 handle
 TIM_HandleTypeDef htim4; ///< Timer 4 handle (Sys-Tick)
 
-static void         System_GPIO_Init(void);
-static SystemStatus System_TIM1_Init(void);
-static SystemStatus System_ADC1_Init(void);
-static SystemStatus System_I2C2_Init(void);
-static SystemStatus System_SPI1_Init(void);
+static void System_GPIO_Init(void);
+static int  System_TIM1_Init(void);
+static int  System_ADC1_Init(void);
+static int  System_I2C2_Init(void);
+static int  System_SPI1_Init(void);
 
 /**
  * @brief  Period elapsed callback in non blocking mode
@@ -71,9 +71,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  * @brief  System Initialisation Function
  * @return System status code
  */
-SystemStatus System_Init(void)
+int System_Init(void)
 {
-    SystemStatus             eStatus           = SYSTEM_OK;
+    int                      nStatus           = 0;
     RCC_OscInitTypeDef       RCC_OscInitStruct = { 0 };
     RCC_ClkInitTypeDef       RCC_ClkInitStruct = { 0 };
     RCC_PeriphCLKInitTypeDef PeriphClkInit     = { 0 };
@@ -95,7 +95,7 @@ SystemStatus System_Init(void)
 
     if (HAL_OK != HAL_RCC_OscConfig(&RCC_OscInitStruct))
     {
-        return SYSTEM_GENERAL_ERROR;
+        return -1;
     }
 
     // Initialises the CPU, AHB and APB busses clocks
@@ -111,7 +111,7 @@ SystemStatus System_Init(void)
 
     if (HAL_OK != HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2))
     {
-        return SYSTEM_GENERAL_ERROR;
+        return -1;
     }
 
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
@@ -119,37 +119,37 @@ SystemStatus System_Init(void)
 
     if (HAL_OK != HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit))
     {
-        return SYSTEM_GENERAL_ERROR;
+        return -1;
     }
 
     // Initialise peripherals
     System_GPIO_Init();
 
-    eStatus = System_TIM1_Init();
-    if (SYSTEM_OK != eStatus)
+    nStatus = System_TIM1_Init();
+    if (0 != nStatus)
     {
-        return eStatus;
+        return nStatus;
     }
 
     if (HAL_OK != HAL_TIM_Base_Start(&htim1))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
-    eStatus = System_ADC1_Init();
-    if (SYSTEM_OK != eStatus)
+    nStatus = System_ADC1_Init();
+    if (0 != nStatus)
     {
-        return eStatus;
+        return nStatus;
     }
 
-    eStatus = System_I2C2_Init();
-    if (SYSTEM_OK != eStatus)
+    nStatus = System_I2C2_Init();
+    if (0 != nStatus)
     {
-        return eStatus;
+        return nStatus;
     }
 
-    eStatus = System_SPI1_Init();
-    return eStatus;
+    nStatus = System_SPI1_Init();
+    return nStatus;
 }
 
 /**
@@ -179,7 +179,7 @@ static void System_GPIO_Init(void)
  * @brief  Timer 1 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_TIM1_Init(void)
+static int System_TIM1_Init(void)
 {
     TIM_ClockConfigTypeDef         sClockSourceConfig   = { 0 };
     TIM_MasterConfigTypeDef        sMasterConfig        = { 0 };
@@ -198,19 +198,19 @@ static SystemStatus System_TIM1_Init(void)
 
     if (HAL_OK != HAL_TIM_Base_Init(&htim1))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
 
     if (HAL_OK != HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     if (HAL_OK != HAL_TIM_OC_Init(&htim1))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
@@ -218,7 +218,7 @@ static SystemStatus System_TIM1_Init(void)
 
     if (HAL_OK != HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     sConfigOC.OCMode       = TIM_OCMODE_FORCED_ACTIVE;
@@ -231,7 +231,7 @@ static SystemStatus System_TIM1_Init(void)
 
     if (HAL_OK != HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     sBreakDeadTimeConfig.OffStateRunMode  = TIM_OSSR_DISABLE;
@@ -244,19 +244,19 @@ static SystemStatus System_TIM1_Init(void)
 
     if (HAL_OK != HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig))
     {
-        return SYSTEM_TIM1_ERROR;
+        return -1;
     }
 
     HAL_TIM_MspPostInit(&htim1);
 
-    return SYSTEM_OK;
+    return 0;
 }
 
 /**
  * @brief  ADC 1 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_ADC1_Init(void)
+static int System_ADC1_Init(void)
 {
     ADC_ChannelConfTypeDef sConfig = { 0 };
 
@@ -271,7 +271,7 @@ static SystemStatus System_ADC1_Init(void)
 
     if (HAL_OK != HAL_ADC_Init(&hadc1))
     {
-        return SYSTEM_ADC_ERROR;
+        return -1;
     }
 
     // Configure Regular Channel
@@ -281,7 +281,7 @@ static SystemStatus System_ADC1_Init(void)
 
     if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
     {
-        return SYSTEM_ADC_ERROR;
+        return -1;
     }
 
     // Configure Regular Channel
@@ -290,7 +290,7 @@ static SystemStatus System_ADC1_Init(void)
 
     if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
     {
-        return SYSTEM_ADC_ERROR;
+        return -1;
     }
 
     // Configure Regular Channel
@@ -299,7 +299,7 @@ static SystemStatus System_ADC1_Init(void)
 
     if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
     {
-        return SYSTEM_ADC_ERROR;
+        return -1;
     }
 
     // Configure Regular Channel
@@ -307,17 +307,17 @@ static SystemStatus System_ADC1_Init(void)
 
     if (HAL_OK != HAL_ADC_ConfigChannel(&hadc1, &sConfig))
     {
-        return SYSTEM_ADC_ERROR;
+        return -1;
     }
 
-    return SYSTEM_OK;
+    return 0;
 }
 
 /**
  * @brief  I²C 2 Initialisation Function
  * @return System status code
  */
-static SystemStatus System_I2C2_Init(void)
+static int System_I2C2_Init(void)
 {
     hi2c2.Instance             = I2C2;
     hi2c2.Init.ClockSpeed      = 100000;
@@ -331,17 +331,19 @@ static SystemStatus System_I2C2_Init(void)
 
     if (HAL_OK != HAL_I2C_Init(&hi2c2))
     {
-        return SYSTEM_I2C_ERROR;
+        return -1;
     }
 
-    return SYSTEM_OK;
+    return 0;
 }
 
 /**
  * @brief  SPI 1 Initialisation Function
- * @return System status code
+ * @return Error code
+ * @retval  0: OK
+ * @retval -1: Error
  */
-static SystemStatus System_SPI1_Init(void)
+static int System_SPI1_Init(void)
 {
     // SPI1 parameter configuration
     hspi1.Instance               = SPI1;
@@ -359,10 +361,10 @@ static SystemStatus System_SPI1_Init(void)
 
     if (HAL_OK != HAL_SPI_Init(&hspi1))
     {
-        return SYSTEM_SPI_ERROR;
+        return -1;
     }
 
-    return SYSTEM_OK;
+    return 0;
 }
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);

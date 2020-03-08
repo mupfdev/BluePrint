@@ -11,25 +11,9 @@
 #pragma once
 
 #include "stm32f1xx_hal.h"
+#include "MCAL.h"
 
 #define LED_Pin       GPIO_PIN_13 ///< LED pin
 #define LED_GPIO_Port GPIOC       ///< LED GPIO port
 
-/**
- * @enum  SystemStatus
- * @brief System status code
- */
-typedef enum
-{
-    SYSTEM_OK = 0,        ///< System OK
-    SYSTEM_GENERAL_ERROR, ///< General error
-    SYSTEM_GPIO_ERROR,    ///< GPIO error
-    SYSTEM_ADC_ERROR,     ///< ADC error
-    SYSTEM_CRC_ERROR,     ///< CRC error
-    SYSTEM_I2C_ERROR,     ///< I²C error
-    SYSTEM_SPI_ERROR,     ///< SPI error
-    SYSTEM_TIM1_ERROR     ///< Timer 1 error
-
-} SystemStatus;
-
-SystemStatus System_Init(void);
+int System_Init(void);

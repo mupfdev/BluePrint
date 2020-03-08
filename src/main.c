@@ -9,12 +9,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "FreeRTOS.h"
+#include "MCAL.h"
 #include "System.h"
 #include "cmsis_os.h"
-#include "stm32f1xx_hal.h"
 #include "task.h"
 
 static TaskHandle_t hMainThread = NULL;
+static uint8_t      u8BlinkDelay = 250;
 
 static void MainThread(void* pArg);
 
@@ -24,9 +25,7 @@ static void MainThread(void* pArg);
   */
 int main(void)
 {
-    static uint8_t u8BlinkDelay = 250;
-
-    if (SYSTEM_OK != System_Init())
+    if (0 != System_Init())
     {
         u8BlinkDelay = 100;
     }
@@ -35,7 +34,7 @@ int main(void)
         MainThread,
         "Main thread",
         configMINIMAL_STACK_SIZE,
-        &u8BlinkDelay,
+        NULL,
         osPriorityNormal,
         &hMainThread);
 
@@ -47,13 +46,13 @@ int main(void)
 
 /**
  * @brief Main thread handler
- * @param pArg: Loop delay in ms
+ * @param pArg: Unused
  */
 static void MainThread(void* pArg)
 {
     while(1)
     {
-        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-        osDelay(*(uint16_t*)pArg);
+        GPIO_Toggle(GPIO_PORT_C, LED_Pin);
+        osDelay(u8BlinkDelay);
     };
 }
