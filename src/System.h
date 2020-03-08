@@ -11,7 +11,6 @@
 #pragma once
 
 #include "stm32f1xx_hal.h"
-#include "MCAL.h"
 
 #define LED_Pin       GPIO_PIN_13 ///< LED pin
 #define LED_GPIO_Port GPIOC       ///< LED GPIO port
