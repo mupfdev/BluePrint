@@ -47,7 +47,7 @@ void GPIO_RaiseHigh(GPIOPort ePort, uint16_t u16PinMask)
 }
 
 /**
- * @bref  Toggle output pin(s) between high and low
+ * @brief Toggle output pin(s) between high and low
  * @param ePort
  *        GPIO port
  * @param u16PinMask
