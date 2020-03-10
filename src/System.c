@@ -69,7 +69,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 /**
  * @brief  System Initialisation Function
- * @return System status code
+ * @return Error code
+ * @retval  0: OK
+ * @retval -1: Error
  */
 int System_Init(void)
 {
@@ -177,7 +179,9 @@ static void System_GPIO_Init(void)
 
 /**
  * @brief  Timer 1 Initialisation Function
- * @return System status code
+ * @return Error code
+ * @retval  0: OK
+ * @retval -1: Error
  */
 static int System_TIM1_Init(void)
 {
@@ -254,7 +258,9 @@ static int System_TIM1_Init(void)
 
 /**
  * @brief  ADC 1 Initialisation Function
- * @return System status code
+ * @return Error code
+ * @retval  0: OK
+ * @retval -1: Error
  */
 static int System_ADC1_Init(void)
 {
@@ -315,7 +321,9 @@ static int System_ADC1_Init(void)
 
 /**
  * @brief  I²C 2 Initialisation Function
- * @return System status code
+ * @return Error code
+ * @retval  0: OK
+ * @retval -1: Error
  */
 static int System_I2C2_Init(void)
 {
