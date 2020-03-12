@@ -7,6 +7,7 @@
  * @copyright "THE BEER-WARE LICENCE" (Revision 42)
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "MCAL.h"
 #include "stm32f1xx_hal.h"
@@ -19,6 +20,30 @@ extern SPI_HandleTypeDef hspi1;
 extern TIM_HandleTypeDef htim1;
 
 static GPIO_TypeDef* _MCAL_ConvertGPIOPort(GPIOPort ePort);
+
+/**
+ * @brief  Read current input pin state
+ * @param  ePort
+ *         GPIO port
+ * @param  u16PinMask
+ *         Pin mask
+ * @return Boolean state
+ * @retval true: Pin is high
+ * @retval false: Pin is low
+ */
+bool GPIO_IsSet(GPIOPort ePort, uint16_t u16PinMask)
+{
+    GPIO_TypeDef* phPort = _MCAL_ConvertGPIOPort(ePort);
+
+    if (HAL_GPIO_ReadPin(phPort, u16PinMask))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 /**
  * @brief Pull output pin(s) low
