@@ -145,6 +145,31 @@ int I2C_Transmit(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8TxB
 }
 
 /**
+ * @brief   Wait for the end of the transfer
+ * @details Before starting a new communication transfer, the CPU need
+ *          to check the current state of the peripheral; if it's busy
+ *          the CPU need to wait for the end of current transfer before
+ *          starting a new one.
+ * @param   u16DevAddress
+ *          Target device address
+ */
+void I2C_WaitUntilReady(uint16_t u16DevAddress)
+{
+    while (HAL_I2C_STATE_READY != HAL_I2C_GetState(&hi2c2));
+
+    while (HAL_TIMEOUT == HAL_I2C_IsDeviceReady(
+               &hi2c2,
+               u16DevAddress,
+               100,
+               100));
+
+    while (HAL_I2C_STATE_READY != HAL_I2C_GetState(&hi2c2))
+    {
+        MCAL_Sleep(1);
+    }
+}
+
+/**
  * @brief Microsecond delay (blocking)
  * @param u16DelayInUs
  *        Delay in microseconds
