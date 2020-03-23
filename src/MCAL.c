@@ -90,6 +90,8 @@ void GPIO_Toggle(GPIOPort ePort, uint16_t u16PinMask)
  *         Target device address
  * @param  u16MemAddress
  *         Internal memory address
+ * @param  eMemAddSize
+ *         Memory address size
  * @param  pu8RxBuffer
  *         Pointer to data buffer
  * @param  u16Size
@@ -98,13 +100,25 @@ void GPIO_Toggle(GPIOPort ePort, uint16_t u16PinMask)
  * @retval  0: OK
  * @retval -1: Error
  */
-int I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8RxBuffer, uint16_t u16Size)
+int I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, I2CMemAddSize eMemAddSize, uint8_t* pu8RxBuffer, uint16_t u16Size)
 {
+    uint16_t u16MemAddSize = 0;
+
+    switch (eMemAddSize)
+    {
+        case I2C_MEMSIZE_8BIT:
+            u16MemAddSize = I2C_MEMADD_SIZE_8BIT;
+            break;
+        case I2C_MEMSIZE_16BIT:
+            u16MemAddSize = I2C_MEMADD_SIZE_16BIT;
+            break;
+    }
+
     if (HAL_OK != HAL_I2C_Mem_Read_IT(
             &hi2c2,
             u16DevAddress,
             u16MemAddress,
-            I2C_MEMADD_SIZE_16BIT,
+            u16MemAddSize,
             pu8RxBuffer,
             u16Size))
     {
@@ -120,6 +134,8 @@ int I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8RxBu
  *         Target device address
  * @param  u16MemAddress
  *         Internal memory address
+ * @param  eMemAddSize
+ *         Memory address size
  * @param  pu8TxBuffer
  *         Pointer to data buffer
  * @param  u16Size
@@ -128,13 +144,25 @@ int I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8RxBu
  * @retval  0: OK
  * @retval -1: Error
  */
-int I2C_Transmit(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8TxBuffer, uint16_t u16Size)
+int I2C_Transmit(uint16_t u16DevAddress, uint16_t u16MemAddress, I2CMemAddSize eMemAddSize, uint8_t* pu8TxBuffer, uint16_t u16Size)
 {
+    uint16_t u16MemAddSize = 0;
+
+    switch (eMemAddSize)
+    {
+        case I2C_MEMSIZE_8BIT:
+            u16MemAddSize = I2C_MEMADD_SIZE_8BIT;
+            break;
+        case I2C_MEMSIZE_16BIT:
+            u16MemAddSize = I2C_MEMADD_SIZE_16BIT;
+            break;
+    }
+
     if (HAL_OK != HAL_I2C_Mem_Write_IT(
             &hi2c2,
             u16DevAddress,
             u16MemAddress,
-            I2C_MEMADD_SIZE_16BIT,
+            u16MemAddSize,
             pu8TxBuffer,
             u16Size))
     {

@@ -22,12 +22,23 @@ typedef enum
 
 } GPIOPort;
 
+/**
+ * @enum  I2CMemAddSize
+ * @brief I²C memory address size
+ */
+typedef enum
+{
+    I2C_MEMSIZE_8BIT = 0, ///< I²C memory address size (8-Bit)
+    I2C_MEMSIZE_16BIT     ///< I²C memory address size (16-Bit)
+
+} I2CMemAddSize;
+
 bool GPIO_IsSet(GPIOPort ePort, uint16_t u16PinMask);
 void GPIO_PullDown(GPIOPort ePort, uint16_t u16PinMask);
 void GPIO_RaiseHigh(GPIOPort ePort, uint16_t u16PinMask);
 void GPIO_Toggle(GPIOPort ePort, uint16_t u16PinMask);
-int  I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8RxBuffer, uint16_t u16Size);
-int  I2C_Transmit(uint16_t u16DevAddress, uint16_t u16MemAddress, uint8_t* pu8TxBuffer, uint16_t u16Size);
+int  I2C_Receive(uint16_t u16DevAddress, uint16_t u16MemAddress, I2CMemAddSize eMemAddSize, uint8_t* pu8RxBuffer, uint16_t u16Size);
+int  I2C_Transmit(uint16_t u16DevAddress, uint16_t u16MemAddress, I2CMemAddSize eMemAddSize, uint8_t* pu8TxBuffer, uint16_t u16Size);
 void I2C_WaitUntilReady(uint16_t u16DevAddress);
 void MCAL_Sleep(uint16_t u16DelayInUs);
 int  SPI_Transmit(uint8_t* pu8TxData, uint16_t u16Size);
